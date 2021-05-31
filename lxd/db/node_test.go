@@ -445,5 +445,24 @@ INSERT INTO instances (id, node_id, name, architecture, type, project_id) VALUES
 	name, err := tx.GetNodeWithLeastInstances(nil, testArch)
 	require.NoError(t, err)
 	assert.Equal(t, "buzz", name)
+}
 
+// Test node with auto target set to false not returned.
+func TestGetNodeWithLeastInstancesRenameThis(t *testing.T) {
+	tx, cleanup := db.NewTestClusterTx(t)
+	defer cleanup()
+
+	id, err := tx.CreateNode("buzz", "1.2.3.4:666")
+	require.NoError(t, err)
+  tx.SetAutoTarget(id, false)
+
+	// Add a container to the default node (ID 1)
+	_, err = tx.Tx().Exec(`
+INSERT INTO instances (id, node_id, name, architecture, type, project_id) VALUES (1, 1, 'foo', 1, 1, 1)
+`)
+	require.NoError(t, err)
+
+	name, err := tx.GetNodeWithLeastInstances(nil, -1)
+	require.NoError(t, err)
+	assert.Equal(t, "buzz", name)
 }
